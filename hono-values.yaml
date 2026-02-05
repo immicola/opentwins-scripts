@@ -1,0 +1,28 @@
+# Hono deployment configuration for integration with OpenTwins Ditto
+# NodePort-based config for Minikube deployment
+
+# Disable LoadBalancer (using NodePort for Minikube)
+useLoadBalancer: false
+
+# Kafka external access must be NodePort when useLoadBalancer is false
+kafka:
+  externalAccess:
+    controller:
+      service:
+        type: NodePort
+    broker:
+      service:
+        type: NodePort
+
+# Enable protocol adapters
+adapters:
+  http:
+    enabled: true
+  mqtt:
+    enabled: true
+  amqp:
+    enabled: true
+
+# Use the example device registry (file-based, suitable for testing)
+deviceRegistryExample:
+  enabled: true
