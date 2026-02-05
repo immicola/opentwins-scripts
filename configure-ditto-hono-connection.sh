@@ -1,6 +1,7 @@
 #!/bin/bash
 # configure-ditto-hono-connection.sh
 # Creates a connection from OpenTwins Ditto to Hono's Kafka
+# Uses internal cluster networking with SASL PLAIN authentication
 
 set -e
 
@@ -9,25 +10,26 @@ HONO_TENANT="opentwins-tenant"
 DITTO_URL="http://192.168.49.2:30525"
 DEVOPS_PWD="foobar"
 
-# Kafka internal address (accessible within cluster)
-KAFKA_BOOTSTRAP="eclipse-hono-kafka.hono.svc.cluster.local:9092"
+# Kafka internal address - using INTERNAL listener (port 9094 = SASL_PLAINTEXT)
+# Note: Port 9092 uses SASL_SSL which requires certificates
+KAFKA_BOOTSTRAP="eclipse-hono-kafka-controller-0.eclipse-hono-kafka-controller-headless.hono.svc.cluster.local:9094"
 
-# Get Kafka certificate
-KAFKA_CERT=$(kubectl get secret eclipse-hono-kafka-example-keys -n hono -o jsonpath="{.data.tls\.crt}" | base64 --decode | tr -d '\n' | sed 's/E-----/E-----\\n/g' | sed 's/-----END/\\n-----END/g')
+echo "Creating Hono Kafka connection in Ditto for tenant: $HONO_TENANT"
+echo "Using internal Kafka bootstrap: $KAFKA_BOOTSTRAP"
 
-echo "Creating Hono connection in Ditto for tenant: $HONO_TENANT"
-
-# Create Hono connection (Kafka-based)
+# Create Hono connection (Kafka-based with SASL PLAIN over TCP)
 curl -X POST "${DITTO_URL}/api/2/connections" \
   -u "devops:${DEVOPS_PWD}" \
   -H "Content-Type: application/json" \
+  --max-time 60 \
   -d '{
+    "name": "hono-kafka-connection",
     "connectionType": "kafka",
     "connectionStatus": "open",
-    "uri": "ssl://hono:hono-secret@eclipse-hono-kafka.hono.svc.cluster.local:9092",
+    "uri": "tcp://hono:hono-secret@eclipse-hono-kafka-controller-0.eclipse-hono-kafka-controller-headless.hono.svc.cluster.local:9094",
     "specificConfig": {
-      "bootstrapServers": "eclipse-hono-kafka.hono.svc.cluster.local:9092",
-      "saslMechanism": "scram-sha-512"
+      "bootstrapServers": "eclipse-hono-kafka-controller-0.eclipse-hono-kafka-controller-headless.hono.svc.cluster.local:9094",
+      "saslMechanism": "plain"
     },
     "sources": [
       {
@@ -36,24 +38,10 @@ curl -X POST "${DITTO_URL}/api/2/connections" \
         "authorizationContext": ["nginx:ditto"],
         "qos": 0,
         "enforcement": {
-          "input": "{{ header:device_id }}",
+          "input": "'${HONO_TENANT}':{{ header:device_id }}",
           "filters": ["{{ entity:id }}"]
         },
-        "headerMapping": {},
-        "payloadMapping": ["Ditto"],
-        "replyTarget": {
-          "enabled": true,
-          "address": "hono.command.'${HONO_TENANT}'/{{ thing:id }}",
-          "headerMapping": {
-            "device_id": "{{ thing:id }}",
-            "subject": "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response",
-            "correlation-id": "{{ header:correlation-id }}"
-          },
-          "expectedResponseTypes": ["response", "error"]
-        },
-        "acknowledgementRequests": {
-          "includes": []
-        }
+        "payloadMapping": ["Ditto"]
       },
       {
         "addresses": ["hono.event.'${HONO_TENANT}'"],
@@ -61,44 +49,20 @@ curl -X POST "${DITTO_URL}/api/2/connections" \
         "authorizationContext": ["nginx:ditto"],
         "qos": 1,
         "enforcement": {
-          "input": "{{ header:device_id }}",
+          "input": "'${HONO_TENANT}':{{ header:device_id }}",
           "filters": ["{{ entity:id }}"]
         },
-        "headerMapping": {},
-        "payloadMapping": ["Ditto"],
-        "replyTarget": {
-          "enabled": true,
-          "address": "hono.command.'${HONO_TENANT}'/{{ thing:id }}",
-          "headerMapping": {
-            "device_id": "{{ thing:id }}",
-            "subject": "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response",
-            "correlation-id": "{{ header:correlation-id }}"
-          },
-          "expectedResponseTypes": ["response", "error"]
-        },
-        "acknowledgementRequests": {
-          "includes": []
-        }
+        "payloadMapping": ["Ditto"]
       }
     ],
-    "targets": [
-      {
-        "address": "hono.command.'${HONO_TENANT}'/{{ thing:id }}",
-        "topics": [
-          "_/_/things/live/commands",
-          "_/_/things/live/messages"
-        ],
-        "authorizationContext": ["nginx:ditto"],
-        "headerMapping": {
-          "device_id": "{{ thing:id }}",
-          "subject": "{{ header:subject | fn:default(topic:action-subject) }}",
-          "correlation-id": "{{ header:correlation-id }}"
-        }
-      }
-    ],
-    "ca": "'"${KAFKA_CERT}"'",
-    "validateCertificates": true
+    "targets": []
   }'
 
 echo ""
 echo "Done! Connection created."
+echo ""
+echo "Test telemetry with:"
+echo "curl -i -k -u \"test-device@opentwins-tenant:test-secret\" \\"
+echo "  -H \"Content-Type: application/json\" \\"
+echo "  -d '{\"topic\":\"opentwins-tenant/test-device-001/things/twin/commands/modify\",\"path\":\"/features/temperature/properties/value\",\"value\":42.5}' \\"
+echo "  \"https://192.168.49.2:30443/telemetry\""

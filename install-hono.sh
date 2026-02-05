@@ -76,9 +76,16 @@ adapters:
 
 deviceRegistryExample:
   enabled: true
+
+# ВАЖНО: Kafka listeners configuration
+# - Port 9092 (CLIENT): SASL_SSL - требует SSL сертификаты
+# - Port 9094 (INTERNAL): SASL_PLAINTEXT - для внутрикластерных соединений (используем этот!)
+# - Port 9095 (EXTERNAL): SASL_SSL - для внешнего доступа
+# Ditto должен подключаться к порту 9094 для SASL_PLAINTEXT без SSL
 EOF
 
 echo "✓ Конфигурация создана"
+echo "  ВАЖНО: Kafka использует порт 9094 для SASL_PLAINTEXT (без SSL)"
 
 # ========================================
 # УСТАНОВКА HONO
