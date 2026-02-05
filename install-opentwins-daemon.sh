@@ -68,6 +68,33 @@ if ! $KUBECTL wait --for=condition=ready pod \
 fi
 log "MongoDB is ready"
 
+# 2.5. Wait for Hono (if installed)
+HONO_NAMESPACE="hono"
+if $KUBECTL get namespace "$HONO_NAMESPACE" &>/dev/null; then
+    log "Waiting for Hono pods to be ready..."
+    if $KUBECTL wait --for=condition=ready pod \
+        -l app.kubernetes.io/name=hono \
+        -n "$HONO_NAMESPACE" \
+        --timeout=120s 2>/dev/null; then
+        log "Hono pods are ready"
+    else
+        log "WARNING: Some Hono pods may not be ready, continuing..."
+    fi
+    
+    # Wait for Kafka specifically (critical for Ditto connection)
+    log "Waiting for Kafka controller..."
+    if $KUBECTL wait --for=condition=ready pod \
+        -l app.kubernetes.io/name=kafka \
+        -n "$HONO_NAMESPACE" \
+        --timeout=120s 2>/dev/null; then
+        log "Kafka is ready"
+    else
+        log "WARNING: Kafka may not be ready"
+    fi
+else
+    log "Hono namespace not found, skipping Hono wait"
+fi
+
 # 3. Restart Extended API
 log "Restarting Extended API pod..."
 $KUBECTL delete pod -n "$NAMESPACE" -l app.kubernetes.io/name=opentwins-ditto-extended-api --ignore-not-found=true
