@@ -219,8 +219,8 @@ cat << THING_CMD
      }'
 THING_CMD
 echo ""
-echo "3. Создайте Hono Connection в Ditto (запустите скрипт):"
-echo "   bash configure-ditto-hono-connection.sh"
+echo "3. Создайте Hono Connection в Ditto (SSL с сертификатом):"
+echo "   bash configure-ditto-hono-ssl.sh"
 echo ""
 echo "4. Отправьте тестовую телеметрию через HTTP:"
 cat << TEST_CMD
