@@ -1,0 +1,10 @@
+grafana:
+  persistence:
+    enabled: true
+    size: 2Gi
+  initChownData:
+    enabled: false
+  securityContext:
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472

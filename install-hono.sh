@@ -214,7 +214,7 @@ cat << THING_CMD
      -H "Content-Type: application/json" \\
      -d '{
        "policyId": "${TENANT_NAME}:${TEST_DEVICE_ID}",
-       "attributes": {"manufacturer": "Test"},
+       "attributes": {"name": "Test Device 001", "manufacturer": "Test", "_isType": false},
        "features": {"temperature": {"properties": {"value": null}}}
      }'
 THING_CMD
