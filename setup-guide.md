@@ -62,7 +62,7 @@ minikube service opentwins-grafana -n opentwins --url
 
 ---
 
-## 2. Unity Plugin
+## 2. Unity Plugin (панель визуализации в Grafana)
 
 ```bash
 bash install-unity-plugin.sh
@@ -70,7 +70,24 @@ bash install-unity-plugin.sh
 
 ---
 
-## 3. Eclipse Hono
+## 3. Unity WebGL (деплой билда как контейнер)
+
+```bash
+# Первый деплой (указать путь к папке с index.html)
+bash deploy-unity-webgl.sh /путь/к/папке/с/билдом
+
+# Обновление билда
+bash deploy-unity-webgl.sh /путь/к/новому/билду --update
+```
+
+После деплоя Unity будет доступен по адресу `http://<MINIKUBE-IP>:32000`.
+Этот URL используется в Grafana Unity панели.
+
+Подробнее: см. [deploy-unity-webgl.md](deploy-unity-webgl.md)
+
+---
+
+## 4. Eclipse Hono
 
 ```bash
 bash install-hono.sh
@@ -84,7 +101,7 @@ bash configure-ditto-hono-ssl.sh
 
 ---
 
-## 4. Systemd-демон автозапуска
+## 5. Systemd-демон автозапуска
 
 ```bash
 bash install-opentwins-daemon.sh
@@ -92,7 +109,7 @@ bash install-opentwins-daemon.sh
 
 ---
 
-## 5. Финальная проверка
+## 6. Финальная проверка
 
 ```bash
 # Поды OpenTwins
@@ -166,7 +183,16 @@ curl -X DELETE "${DITTO_URL}/api/2/connections/<CONNECTION_ID>" -u "devops:fooba
 
 ---
 
-## 4. Удаление Unity Plugin (из Grafana)
+## 4. Удаление Unity WebGL (контейнер)
+
+```bash
+kubectl delete deployment unity-webgl -n opentwins
+kubectl delete service unity-webgl-svc -n opentwins
+```
+
+---
+
+## 5. Удаление Unity Plugin (из Grafana)
 
 ```bash
 GRAFANA_POD=$(kubectl get pod -n opentwins -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].metadata.name}')
@@ -181,7 +207,7 @@ kubectl wait --for=condition=ready pod -n opentwins -l app.kubernetes.io/name=gr
 
 ---
 
-## 5. Удаление OpenTwins
+## 6. Удаление OpenTwins
 
 ```bash
 # Удаление helm-релиза
@@ -207,7 +233,7 @@ helm list -A                   # Не должно быть opentwins и eclipse
 
 ---
 
-## 6. (Опционально) Полный сброс Minikube
+## 7. (Опционально) Полный сброс Minikube
 
 Если нужно начать совсем с нуля:
 
