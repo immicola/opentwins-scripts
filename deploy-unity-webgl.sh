@@ -1,8 +1,8 @@
 #!/bin/bash
 # deploy-unity-webgl.sh
 # Деплоит Unity WebGL билд в OpenTwins (Minikube)
-# Использование: bash deploy-unity-webgl.sh /путь/к/папке/с/index.html
-# Для обновления: bash deploy-unity-webgl.sh /путь/к/папке/с/index.html --update
+# Использование: bash deploy-unity-webgl.sh /путь/к/папке/с-index.html/
+# Для обновления: bash deploy-unity-webgl.sh /путь/к/папке/с-index.html --update
 
 set -euo pipefail
 
